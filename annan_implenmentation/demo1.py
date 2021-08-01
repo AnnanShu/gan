@@ -12,8 +12,9 @@ import visdom
 
 torch.cuda.is_available()
 
-class Generator(nn.module):
-    def __init__(self, h_dim) -> None:
+h_dim = 400
+class Generator(nn.Module):
+    def __init__(self) -> None:
         super().__init__()
 
         self.net = nn.Sequential(
@@ -29,6 +30,25 @@ class Generator(nn.module):
     def forward(self, z):
         output = self.net(z)
         return output
+
+class Discriminator(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.net = nn.Sequential(
+            nn.Linear(2, h_dim), 
+            nn.ReLU(True), 
+            nn.Linear(h_dim, h_dim), 
+            nn.ReLU(True), 
+            nn.Linear(h_dim, h_dim), 
+            nn.ReLU(True), 
+            nn.Linear(h_dim, 1), 
+            nn.Sigmoid()
+        )
+    
+    def forward(self, x):
+        output = self.net(x)
+        return output.view(-1)
 
 def data_generator(batch_size=32):
     """
@@ -50,7 +70,7 @@ def data_generator(batch_size=32):
 
     while True:
         dataset = []
-        for i in range(batch_size):
+        for _ in range(batch_size):
             point = np.random.randn(2) * 0.02
             center = random.choice(centers)
             # N(0, 1) + center x1/x2
@@ -68,8 +88,7 @@ def main():
     np.random.seed(23) 
     data_iter = data_generator()
     x = next(data_iter) 
-    print(x) 
-    return x
+    
 
 
 if __name__ == '__main__':
