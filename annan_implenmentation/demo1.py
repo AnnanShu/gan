@@ -7,9 +7,7 @@ import torch.nn as nn
 from torch import nn, optim, autograd, rand
 import numpy as np 
 import random 
-import visdom
-
-
+# import visdom
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') 
 MAX_EPOCH = 50000
@@ -106,14 +104,14 @@ def main():
         for _ in range(5):
             # 1.1 train on real data 
             xr = next(data_iter) 
-            xr= torch.from_numpy(x).to(device) 
+            xr= torch.from_numpy(xr).to(device) 
             # [b, 2] -> [b, 1]
-            predr = D(x) 
+            predr = D(xr) 
             lossr = predr.mean()
 
             # 1.2 train on fake data 
             # [b, ]
-            z = torch.randn(BATCH_SIZE, 3).to(device) 
+            z = torch.randn(BATCH_SIZE, 2).to(device) 
             xf = G(z).detach()  # tf.stop_gradient() 
             predf = D(xf)
             lossf = predf.mean()
@@ -127,16 +125,19 @@ def main():
             optim_D.step()
         # train Generator
 
-        for _ in range(5):
-            z = torch.randn(BATCH_SIZE, 2).to(device)
-            xf = G(z) 
-            predf = D(xf) 
-            # max perdf.mean() 
-            loss_G = -predf.mean()
-            # optimize
-            optim_G.zero_grad()
-            loss_G.backward()
-            optim_G.step()
+
+        z = torch.randn(BATCH_SIZE, 2).to(device)
+        xf = G(z) 
+        predf = D(xf) 
+        # max perdf.mean() 
+        loss_G = -predf.mean()
+        # optimize
+        optim_G.zero_grad()
+        loss_G.backward()
+        optim_G.step()
+
+        if epoch % 100 == 0:
+            print(loss_D.item(), loss_G.item())
     
 
     
