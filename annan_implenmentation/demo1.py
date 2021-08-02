@@ -10,7 +10,12 @@ import random
 import visdom
 
 
-torch.cuda.is_available()
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') 
+MAX_EPOCH = 50000
+BATCH_SIZE = 32
+LEARNING_RATE = 5e-4
+
 
 h_dim = 400
 class Generator(nn.Module):
@@ -50,7 +55,7 @@ class Discriminator(nn.Module):
         output = self.net(x)
         return output.view(-1)
 
-def data_generator(batch_size=32):
+def data_generator(batch_size=BATCH_SIZE):
     """
     8-gaussian mixture model 
     : return 
@@ -88,6 +93,52 @@ def main():
     np.random.seed(23) 
     data_iter = data_generator()
     x = next(data_iter) 
+
+    G = Generator().to(device)
+    D = Discriminator().to(device)
+
+    optim_G = optim.Adam(G.parameters(), lr=LEARNING_RATE)
+    optim_D = optim.Adam(D.parameters(), lr=LEARNING_RATE)
+
+    for epoch in range(MAX_EPOCH):
+
+        # train Discriminator firstly
+        for _ in range(5):
+            # 1.1 train on real data 
+            xr = next(data_iter) 
+            xr= torch.from_numpy(x).to(device) 
+            # [b, 2] -> [b, 1]
+            predr = D(x) 
+            lossr = predr.mean()
+
+            # 1.2 train on fake data 
+            # [b, ]
+            z = torch.randn(BATCH_SIZE, 3).to(device) 
+            xf = G(z).detach()  # tf.stop_gradient() 
+            predf = D(xf)
+            lossf = predf.mean()
+
+            # aggregate all 
+            loss_D = lossr + lossf 
+
+            # optimizer
+            optim_D.zero_grad()
+            loss_D.backward()
+            optim_D.step()
+        # train Generator
+
+        for _ in range(5):
+            z = torch.randn(BATCH_SIZE, 2).to(device)
+            xf = G(z) 
+            predf = D(xf) 
+            # max perdf.mean() 
+            loss_G = -predf.mean()
+            # optimize
+            optim_G.zero_grad()
+            loss_G.backward()
+            optim_G.step()
+    
+
     
 
 
